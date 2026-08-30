@@ -19,8 +19,8 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        if (env('APP_ENV') !== 'local') {
-            \Illuminate\Support\Facades\URL::forceScheme('https');
-        }
+        // Force HTTPS in all environments to fix Livewire Mixed Content issues
+        // behind Cloudflare/Nginx proxies, even if APP_ENV is incorrectly set to local
+        \Illuminate\Support\Facades\URL::forceScheme('https');
     }
 }
