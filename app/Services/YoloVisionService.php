@@ -87,18 +87,32 @@ class YoloVisionService
             return base64_encode(file_get_contents($sourcePath));
         }
 
+        // Cek apakah ekstensi GD terinstal di server
+        if (!function_exists('imagecreatetruecolor')) {
+            Log::warning('GD Library is not installed. Sending uncompressed image to Roboflow.');
+            return base64_encode(file_get_contents($sourcePath));
+        }
+
         $ratio = $maxWidth / $width;
         $newHeight = (int)($height * $ratio);
 
         $image = null;
         switch ($mime) {
-            case 'image/jpeg': $image = @imagecreatefromjpeg($sourcePath); break;
-            case 'image/png': $image = @imagecreatefrompng($sourcePath); break;
-            case 'image/webp': $image = @imagecreatefromwebp($sourcePath); break;
-            default: return base64_encode(file_get_contents($sourcePath));
+            case 'image/jpeg': 
+                if (function_exists('imagecreatefromjpeg')) $image = @imagecreatefromjpeg($sourcePath); 
+                break;
+            case 'image/png': 
+                if (function_exists('imagecreatefrompng')) $image = @imagecreatefrompng($sourcePath); 
+                break;
+            case 'image/webp': 
+                if (function_exists('imagecreatefromwebp')) $image = @imagecreatefromwebp($sourcePath); 
+                break;
         }
 
-        if (!$image) return base64_encode(file_get_contents($sourcePath));
+        if (!$image) {
+            Log::warning("GD Library missing support for {$mime}. Sending uncompressed image.");
+            return base64_encode(file_get_contents($sourcePath));
+        }
 
         $resized = imagecreatetruecolor($maxWidth, $newHeight);
         
