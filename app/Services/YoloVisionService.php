@@ -36,8 +36,8 @@ class YoloVisionService
                         'type' => 'base64',
                         'value' => $imageData
                     ],
-                    // Parameter dinamis dari model Zero-Shot Roboflow
-                    'classes' => ['ayam', 'ayam_goreng', 'nasi', 'telur', 'tahu', 'tempe', 'sayur', 'ikan', 'daging', 'mie']
+                    // AI Zero-Shot (Grounding DINO) bekerja jauh lebih baik dengan bahasa Inggris
+                    'classes' => 'chicken, rice, egg, tofu, tempeh, vegetable, fish, meat, noodles'
                 ]
             ]);
 
@@ -48,11 +48,26 @@ class YoloVisionService
                 $detections = [];
                 $predictions = $this->extractPredictions($data);
 
+                $englishToIndo = [
+                    'chicken' => 'ayam',
+                    'rice' => 'nasi',
+                    'egg' => 'telur',
+                    'tofu' => 'tahu',
+                    'tempeh' => 'tempe',
+                    'vegetable' => 'sayur',
+                    'fish' => 'ikan',
+                    'meat' => 'daging',
+                    'noodles' => 'mie',
+                ];
+
                 foreach ($predictions as $pred) {
                     // Filter prediksi dengan akurasi di atas 30%
                     if (isset($pred['confidence']) && $pred['confidence'] > 0.3) {
+                        $rawClass = strtolower(trim($pred['class']));
+                        $indoClass = $englishToIndo[$rawClass] ?? $rawClass;
+
                         $detections[] = [
-                            'class' => strtolower($pred['class']),
+                            'class' => $indoClass,
                             'confidence' => $pred['confidence'],
                         ];
                     }
