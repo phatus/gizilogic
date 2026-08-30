@@ -25,9 +25,15 @@ class NutritionEvaluatorService
         foreach ($detections as $item) {
             $class = strtolower($item['class'] ?? '');
             
-            if (in_array($class, $this->proteinKeywords)) $hasProtein = true;
-            if (in_array($class, $this->vegetableKeywords)) $hasVeggie = true;
-            if (in_array($class, $this->carbKeywords)) $hasCarb = true;
+            foreach ($this->proteinKeywords as $keyword) {
+                if (str_contains($class, $keyword)) $hasProtein = true;
+            }
+            foreach ($this->vegetableKeywords as $keyword) {
+                if (str_contains($class, $keyword)) $hasVeggie = true;
+            }
+            foreach ($this->carbKeywords as $keyword) {
+                if (str_contains($class, $keyword)) $hasCarb = true;
+            }
         }
 
         $status = 'seimbang';
