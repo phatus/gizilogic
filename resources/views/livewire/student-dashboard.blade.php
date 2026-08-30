@@ -54,6 +54,20 @@
                             <span class="text-xs font-semibold px-2 py-1 rounded-full {{ $log->nutrition_status === 'seimbang' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700' }}">
                                 {{ str_replace('_', ' ', Str::title($log->nutrition_status)) ?? 'Menunggu...' }}
                             </span>
+                            
+                            @if($log->detection_results && isset($log->detection_results['detections']))
+                                <div class="mt-2 text-xs text-gray-600 bg-gray-50 p-2 rounded-lg border border-gray-100">
+                                    <span class="font-bold text-indigo-600">AI Mendeteksi:</span><br>
+                                    @php
+                                        $detectedItems = collect($log->detection_results['detections'])->pluck('class')->unique()->implode(', ');
+                                    @endphp
+                                    {{ $detectedItems ?: 'Tidak ada makanan terdeteksi' }}
+                                    
+                                    @if(isset($log->detection_results['note']) && $log->detection_results['note'] !== 'Analyzed via Roboflow AI')
+                                        <div class="mt-1 text-red-500 italic">({{ $log->detection_results['note'] }})</div>
+                                    @endif
+                                </div>
+                            @endif
                         </div>
                     </div>
                 @endforeach
