@@ -23,10 +23,9 @@ class YoloVisionService
         }
 
         try {
-            // Karena server Anda sekarang sudah online via Cloudflare Tunnels,
-            // Kita bisa memberikan URL langsung ke Roboflow agar lebih cepat 
-            // daripada membaca Base64 yang sangat berat.
-            $imageUrl = asset('storage/' . $photoPath);
+            $absolutePath = Storage::disk('public')->path($photoPath);
+            // Kompres gambar menjadi max 800px lalu ubah ke base64
+            $imageData = $this->compressImageToBase64($absolutePath);
 
             $url = "https://serverless.roboflow.com/infer/workflows/{$workspace}/{$workflowId}";
 
@@ -34,8 +33,8 @@ class YoloVisionService
                 'api_key' => $apiKey,
                 'inputs' => [
                     'image' => [
-                        'type' => 'url',
-                        'value' => $imageUrl
+                        'type' => 'base64',
+                        'value' => $imageData
                     ],
                     // Parameter dinamis dari model Zero-Shot Roboflow
                     'classes' => 'ayam, ayam_goreng, nasi, telur, tahu, tempe, sayur, ikan, daging, mie'
@@ -73,6 +72,54 @@ class YoloVisionService
             Log::error('YoloVisionService Error: ' . $e->getMessage());
             return $this->mockResponse();
         }
+    }
+
+    private function compressImageToBase64($sourcePath, $maxWidth = 800)
+    {
+        $info = @getimagesize($sourcePath);
+        if (!$info) return base64_encode(file_get_contents($sourcePath));
+
+        $mime = $info['mime'];
+        $width = $info[0];
+        $height = $info[1];
+
+        if ($width <= $maxWidth) {
+            return base64_encode(file_get_contents($sourcePath));
+        }
+
+        $ratio = $maxWidth / $width;
+        $newHeight = (int)($height * $ratio);
+
+        $image = null;
+        switch ($mime) {
+            case 'image/jpeg': $image = @imagecreatefromjpeg($sourcePath); break;
+            case 'image/png': $image = @imagecreatefrompng($sourcePath); break;
+            case 'image/webp': $image = @imagecreatefromwebp($sourcePath); break;
+            default: return base64_encode(file_get_contents($sourcePath));
+        }
+
+        if (!$image) return base64_encode(file_get_contents($sourcePath));
+
+        $resized = imagecreatetruecolor($maxWidth, $newHeight);
+        
+        if ($mime == 'image/png' || $mime == 'image/webp') {
+            imagealphablending($resized, false);
+            imagesavealpha($resized, true);
+        }
+
+        imagecopyresampled($resized, $image, 0, 0, 0, 0, $maxWidth, $newHeight, $width, $height);
+
+        ob_start();
+        if ($mime == 'image/jpeg') imagejpeg($resized, null, 80);
+        elseif ($mime == 'image/png') imagepng($resized, null, 6);
+        elseif ($mime == 'image/webp') imagewebp($resized, null, 80);
+        
+        $imageData = ob_get_clean();
+        
+        imagedestroy($image);
+        imagedestroy($resized);
+
+        return base64_encode($imageData);
     }
 
     private function extractPredictions($data) {
