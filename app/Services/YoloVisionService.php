@@ -37,7 +37,7 @@ class YoloVisionService
                         'value' => $imageData
                     ],
                     // Parameter dinamis dari model Zero-Shot Roboflow
-                    'classes' => 'ayam, ayam_goreng, nasi, telur, tahu, tempe, sayur, ikan, daging, mie'
+                    'classes' => ['ayam', 'ayam_goreng', 'nasi', 'telur', 'tahu', 'tempe', 'sayur', 'ikan', 'daging', 'mie']
                 ]
             ]);
 
