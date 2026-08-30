@@ -23,18 +23,19 @@ class YoloVisionService
         }
 
         try {
-            $absolutePath = Storage::disk('public')->path($photoPath);
-            // Konversi gambar ke base64
-            $imageData = base64_encode(file_get_contents($absolutePath));
+            // Karena server Anda sekarang sudah online via Cloudflare Tunnels,
+            // Kita bisa memberikan URL langsung ke Roboflow agar lebih cepat 
+            // daripada membaca Base64 yang sangat berat.
+            $imageUrl = asset('storage/' . $photoPath);
 
             $url = "https://serverless.roboflow.com/infer/workflows/{$workspace}/{$workflowId}";
 
-            $response = Http::post($url, [
+            $response = Http::timeout(20)->post($url, [
                 'api_key' => $apiKey,
                 'inputs' => [
                     'image' => [
-                        'type' => 'base64',
-                        'value' => $imageData
+                        'type' => 'url',
+                        'value' => $imageUrl
                     ],
                     // Parameter dinamis dari model Zero-Shot Roboflow
                     'classes' => 'ayam, ayam_goreng, nasi, telur, tahu, tempe, sayur, ikan, daging, mie'
