@@ -13,55 +13,93 @@ class YoloVisionService
      */
     public function analyzeFoodImage(string $photoPath): array
     {
-        $apiUrl = env('YOLO_API_URL');
-        $apiKey = env('YOLO_API_KEY');
+        $apiKey = env('ROBOFLOW_API_KEY');
+        $workspace = env('ROBOFLOW_WORKSPACE');
+        $workflowId = env('ROBOFLOW_WORKFLOW_ID');
 
-        // Check if real API URL is set, otherwise use Mock Response
-        if (empty($apiUrl) || $apiUrl === 'mock') {
-            return $this->getMockResponse();
+        // Jika API Key tidak ada di .env, gunakan Mock (untuk jaga-jaga/testing)
+        if (empty($apiKey)) {
+            return $this->mockResponse(); 
         }
 
         try {
             $absolutePath = Storage::disk('public')->path($photoPath);
-            $fileResource = fopen($absolutePath, 'r');
-            
-            $response = Http::withHeaders([
-                'Authorization' => 'Bearer ' . $apiKey,
-            ])
-            ->timeout(15)
-            ->attach('image', $fileResource, basename($absolutePath))
-            ->post($apiUrl);
+            // Konversi gambar ke base64
+            $imageData = base64_encode(file_get_contents($absolutePath));
+
+            $url = "https://serverless.roboflow.com/infer/workflows/{$workspace}/{$workflowId}";
+
+            $response = Http::post($url, [
+                'api_key' => $apiKey,
+                'inputs' => [
+                    'image' => [
+                        'type' => 'base64',
+                        'value' => $imageData
+                    ],
+                    // Parameter dinamis dari model Zero-Shot Roboflow
+                    'classes' => 'ayam, ayam_goreng, nasi, telur, tahu, tempe, sayur, ikan, daging, mie'
+                ]
+            ]);
 
             if ($response->successful()) {
-                return $response->json();
-            } else {
-                Log::error('YOLO API Error: ' . $response->body());
-                return $this->getMockResponse('API error, falling back to mock.');
+                $data = $response->json();
+                Log::info('Roboflow Workflow Response:', $data);
+                
+                $detections = [];
+                $predictions = $this->extractPredictions($data);
+
+                foreach ($predictions as $pred) {
+                    // Filter prediksi dengan akurasi di atas 30%
+                    if (isset($pred['confidence']) && $pred['confidence'] > 0.3) {
+                        $detections[] = [
+                            'class' => strtolower($pred['class']),
+                            'confidence' => $pred['confidence'],
+                        ];
+                    }
+                }
+
+                return [
+                    'success' => true,
+                    'note' => 'Analyzed via Roboflow AI',
+                    'detections' => $detections
+                ];
             }
+
+            Log::error('Roboflow API Error: ' . $response->body());
+            return $this->mockResponse();
+
         } catch (\Exception $e) {
-            Log::error('YOLO API Exception: ' . $e->getMessage());
-            return $this->getMockResponse('Exception occurred, falling back to mock.');
+            Log::error('YoloVisionService Error: ' . $e->getMessage());
+            return $this->mockResponse();
         }
     }
 
-    /**
-     * Generate a dummy/mock response for testing without a real API.
-     */
-    private function getMockResponse(string $note = 'This is a mock response'): array
+    private function extractPredictions($data) {
+        if (isset($data['outputs']) && is_array($data['outputs'])) {
+            foreach ($data['outputs'] as $output) {
+                if (isset($output['predictions'])) {
+                    return $output['predictions'];
+                }
+                foreach ($output as $key => $val) {
+                    if (is_array($val) && isset($val[0]['class'])) {
+                        return $val;
+                    }
+                }
+            }
+        }
+        return [];
+    }
+
+    private function mockResponse()
     {
-        // Simulate network delay
-        sleep(2);
-        
         return [
             'success' => true,
-            'note' => $note,
+            'note' => 'Mock Data (No API Key)',
             'detections' => [
                 [
                     'class' => 'nasi',
-                    'confidence' => 0.95,
-                    'box' => [10, 20, 100, 100]
+                    'confidence' => 0.95
                 ]
-                // Telur dihapus agar sistem mendeteksi 'Kurang Protein'
             ]
         ];
     }
