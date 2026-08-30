@@ -24,11 +24,36 @@ class User extends Authenticatable
         'password',
         'nisn',
         'kelas',
+        'points',
+        'level',
     ];
 
     public function foodLogs()
     {
         return $this->hasMany(FoodLog::class);
+    }
+
+    /**
+     * Add points and handle level up
+     *
+     * @param int $points
+     * @return bool True if leveled up, false otherwise
+     */
+    public function addPoints(int $points): bool
+    {
+        $this->points += $points;
+        
+        // Asumsi: Butuh 100 points untuk tiap level
+        $newLevel = floor($this->points / 100) + 1;
+        $leveledUp = false;
+
+        if ($newLevel > $this->level) {
+            $this->level = $newLevel;
+            $leveledUp = true;
+        }
+
+        $this->save();
+        return $leveledUp;
     }
 
     /**

@@ -47,6 +47,16 @@ class FoodUploadForm extends Component
         $this->reset('photo');
         $this->isUploading = false;
         
+        // --- GAMIFIKASI LOGIC ---
+        $pointsEarned = 10; // Base points for uploading
+        if ($evaluation['status'] === 'seimbang') {
+            $pointsEarned += 40; // Bonus for balanced diet
+        }
+
+        /** @var \App\Models\User $user */
+        $user = Auth::user();
+        $leveledUp = $user->addPoints($pointsEarned);
+
         // Beritahu parent (StudentDashboard) untuk update list
         $this->dispatch('food-uploaded');
 
@@ -56,6 +66,11 @@ class FoodUploadForm extends Component
                 title: $evaluation['module']->title, 
                 content: $evaluation['module']->content
             );
+        }
+
+        // Panggil notifikasi gamifikasi (jika naik level atau dapat poin)
+        if ($leveledUp) {
+            $this->dispatch('level-up-modal', level: $user->level, points: $pointsEarned);
         }
     }
 
