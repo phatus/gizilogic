@@ -125,7 +125,12 @@ class YoloVisionService
     private function extractPredictions($data) {
         if (isset($data['outputs']) && is_array($data['outputs'])) {
             foreach ($data['outputs'] as $output) {
-                if (isset($output['predictions'])) {
+                // Periksa apakah predictions bersarang di dalam object predictions
+                if (isset($output['predictions']['predictions']) && is_array($output['predictions']['predictions'])) {
+                    return $output['predictions']['predictions'];
+                }
+                // Fallback jika predictions berupa array langsung
+                if (isset($output['predictions']) && is_array($output['predictions']) && !isset($output['predictions']['image'])) {
                     return $output['predictions'];
                 }
                 foreach ($output as $key => $val) {
