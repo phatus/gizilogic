@@ -43,7 +43,7 @@ services:
     networks:
       - gizilogic-network
     ports:
-      - "5432:5432"
+      - "5433:5432"
 
 networks:
   gizilogic-network:
