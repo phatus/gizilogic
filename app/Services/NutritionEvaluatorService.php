@@ -113,7 +113,8 @@ class NutritionEvaluatorService
     private function evaluateWithGemini(array $classes): ?array
     {
         $apiKey = config('services.gemini.key');
-        $url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={$apiKey}";
+        // Gunakan gemini-pro yang lebih stabil & tersedia secara global di v1beta
+        $url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key={$apiKey}";
         
         $foodList = implode(', ', $classes);
         $prompt = "Kamu adalah sistem ahli gizi otomatis untuk aplikasi sekolah GiziLogic. Anak sekolah ini memfoto makanannya dan AI vision mendeteksi item ini: {$foodList}. 

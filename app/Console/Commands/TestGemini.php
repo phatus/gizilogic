@@ -24,7 +24,7 @@ class TestGemini extends Command
         $this->info('API Key Terbaca: ' . substr($apiKey, 0, 5) . '***');
         $this->info('Menguji koneksi ke Google Gemini...');
 
-        $url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={$apiKey}";
+        $url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key={$apiKey}";
         $prompt = "Jawab dengan JSON: {\"status\":\"ok\"}";
 
         try {
