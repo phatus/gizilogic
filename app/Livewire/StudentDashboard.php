@@ -3,18 +3,21 @@
 namespace App\Livewire;
 
 use Livewire\Component;
+use Livewire\WithPagination;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\On;
 use Illuminate\Support\Facades\Auth;
 
 class StudentDashboard extends Component
 {
+    use WithPagination;
+
     #[Layout('components.layouts.app')]
     #[On('food-uploaded')]
     public function render()
     {
         $user = Auth::user();
-        $foodLogs = $user ? $user->foodLogs()->latest()->get() : collect();
+        $foodLogs = $user ? $user->foodLogs()->latest()->paginate(5) : null;
         
         return view('livewire.student-dashboard', [
             'user' => $user,

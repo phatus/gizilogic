@@ -13,12 +13,13 @@ RUN apk add --no-cache \
     zip \
     unzip \
     postgresql-dev \
+    icu-dev \
     nodejs \
     npm
 
 # Configure and Install PHP extensions
 RUN docker-php-ext-configure gd --with-freetype --with-jpeg --with-webp \
-    && docker-php-ext-install pdo_pgsql mbstring exif pcntl bcmath gd
+    && docker-php-ext-install pdo_pgsql mbstring exif pcntl bcmath gd intl
 
 # Get latest Composer
 COPY --from=composer:latest /usr/bin/composer /usr/bin/composer

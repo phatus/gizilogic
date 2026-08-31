@@ -107,10 +107,21 @@
                                         <div class="mt-2 text-red-500 italic text-[10px]">({{ $log->detection_results['note'] }})</div>
                                     @endif
                                 </div>
-                            @endif
-                        </div>
+                        @endif
                     </div>
-                @endforeach
+                </div>
+            @empty
+                <div class="col-span-full p-8 text-center text-gray-500 bg-gray-50 rounded-xl border-2 border-dashed border-gray-200">
+                    <div class="text-4xl mb-3">📸</div>
+                    <p>Belum ada histori makanan.</p>
+                    <p class="text-sm mt-1">Ayo mulai foto makananmu sekarang!</p>
+                </div>
+            @endforelse
+        </div>
+
+        @if($foodLogs && $foodLogs->hasPages())
+            <div class="mt-6">
+                {{ $foodLogs->links() }}
             </div>
         @endif
     </div>
