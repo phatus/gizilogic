@@ -70,7 +70,7 @@
             </div>
         @else
             <div class="grid grid-cols-2 gap-4">
-                @foreach($foodLogs as $log)
+                @forelse($foodLogs as $log)
                     <div class="bg-white rounded-2xl overflow-hidden shadow-sm border border-gray-100 hover:shadow-md transition">
                         <img src="{{ Storage::url($log->photo_path) }}" alt="Food" class="w-full h-32 object-cover">
                         <div class="p-3">
