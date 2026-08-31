@@ -6,10 +6,10 @@ use App\Models\EducationModule;
 
 class NutritionEvaluatorService
 {
-    // Keyword klasifikasi deteksi YOLO (Bisa diperluas)
-    private array $proteinKeywords = ['telur', 'ikan', 'ayam', 'daging', 'tahu', 'tempe'];
-    private array $vegetableKeywords = ['sayur', 'bayam', 'kangkung', 'wortel', 'tomat', 'brokoli', 'kubis'];
-    private array $carbKeywords = ['nasi', 'mie', 'kentang', 'roti', 'jagung', 'singkong'];
+    // Keyword klasifikasi deteksi YOLO (Bilingual)
+    private array $proteinKeywords = ['telur', 'ikan', 'ayam', 'daging', 'tahu', 'tempe', 'egg', 'fish', 'chicken', 'meat', 'tofu', 'tempeh', 'beef'];
+    private array $vegetableKeywords = ['sayur', 'bayam', 'kangkung', 'wortel', 'tomat', 'brokoli', 'kubis', 'vegetable', 'spinach', 'carrot', 'tomato', 'broccoli', 'cabbage'];
+    private array $carbKeywords = ['nasi', 'mie', 'kentang', 'roti', 'jagung', 'singkong', 'rice', 'noodle', 'potato', 'bread', 'corn', 'cassava'];
 
     /**
      * Evaluasi hasil deteksi dan kembalikan status serta modul edukasi (jika ada).
@@ -37,28 +37,50 @@ class NutritionEvaluatorService
         }
 
         $status = 'seimbang';
-        $targetNutrition = null;
+        $targets = [];
 
-        if (!$hasProtein && !$hasVeggie) {
-            $status = 'kurang_protein_dan_sayur';
-            $targetNutrition = 'kurang_protein'; // Prioritas edukasi
-        } elseif (!$hasProtein) {
-            $status = 'kurang_protein';
-            $targetNutrition = 'kurang_protein';
-        } elseif (!$hasVeggie) {
-            $status = 'kurang_sayur';
-            $targetNutrition = 'kurang_sayur';
+        if (!$hasProtein) {
+            $targets[] = 'kurang_protein';
+        }
+        if (!$hasVeggie) {
+            $targets[] = 'kurang_sayur';
         }
 
-        $module = null;
-        if ($status !== 'seimbang' && $targetNutrition) {
-            // Ambil rekomendasi modul edukasi dari database secara acak sesuai target
-            $module = EducationModule::where('target_nutrition', $targetNutrition)->inRandomOrder()->first();
+        if (count($targets) == 2) {
+            $status = 'kurang_protein_dan_sayur';
+        } elseif (count($targets) == 1) {
+            $status = $targets[0];
+        }
+
+        $combinedModule = null;
+        if (!empty($targets)) {
+            $titles = [];
+            $contents = [];
+            $recipes = [];
+
+            foreach ($targets as $target) {
+                $mod = EducationModule::where('target_nutrition', $target)->inRandomOrder()->first();
+                if ($mod) {
+                    $titles[] = $mod->title;
+                    $contents[] = $mod->content;
+                    if ($mod->substitution_recipe) {
+                        $recipes[] = $mod->substitution_recipe;
+                    }
+                }
+            }
+
+            if (!empty($contents)) {
+                $combinedModule = new EducationModule([
+                    'title' => count($titles) > 1 ? 'Pentingnya Protein & Sayur' : $titles[0],
+                    'content' => implode("\n\n---\n\n", $contents),
+                    'substitution_recipe' => implode("\n\n---\n\n", $recipes)
+                ]);
+            }
         }
 
         return [
             'status' => $status,
-            'module' => $module
+            'module' => $combinedModule
         ];
     }
 }

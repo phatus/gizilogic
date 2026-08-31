@@ -1,5 +1,5 @@
-<div class="p-4 space-y-6" x-data="{ showModal: false, modalTitle: '', modalContent: '', showLevelUp: false, newLevel: 0, pointsGained: 0 }"
-     @show-education-modal.window="showModal = true; modalTitle = $event.detail.title; modalContent = $event.detail.content"
+<div class="p-4 space-y-6" x-data="{ showModal: false, modalTitle: '', modalContent: '', modalRecipe: '', showLevelUp: false, newLevel: 0, pointsGained: 0 }"
+     @show-education-modal.window="showModal = true; modalTitle = $event.detail.title; modalContent = $event.detail.content; modalRecipe = $event.detail.recipe"
      @level-up-modal.window="showLevelUp = true; newLevel = $event.detail.level; pointsGained = $event.detail.points">
     
     <!-- User Profile & Gamification Card -->
@@ -77,13 +77,23 @@
 
     <!-- AlpineJS Modal Pop-up (Edukasi) -->
     <div x-show="showModal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-gray-900 bg-opacity-50 backdrop-blur-sm" style="display: none;" x-transition>
-        <div class="bg-white rounded-3xl p-6 w-full max-w-sm shadow-2xl transform transition-all" @click.away="showModal = false">
+        <div class="bg-white rounded-3xl p-6 w-full max-w-sm shadow-2xl transform transition-all max-h-[90vh] overflow-y-auto" @click.away="showModal = false">
             <div class="w-16 h-16 bg-red-100 text-red-500 rounded-full flex items-center justify-center mx-auto mb-4">
                 <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
             </div>
             <h3 class="text-xl font-bold text-center text-gray-800 mb-2" x-text="modalTitle"></h3>
-            <p class="text-gray-600 text-center text-sm mb-6" x-text="modalContent"></p>
-            <button @click="showModal = false" class="w-full bg-primary hover:bg-indigo-700 text-white font-bold py-3 px-4 rounded-xl shadow transition">
+            <div class="text-gray-600 text-sm mb-4 space-y-2 whitespace-pre-line" x-text="modalContent"></div>
+            
+            <template x-if="modalRecipe">
+                <div class="mt-4 p-4 bg-yellow-50 rounded-2xl border border-yellow-100">
+                    <h4 class="font-bold text-yellow-800 text-sm mb-2 flex items-center gap-2">
+                        <span>💡</span> Rekomendasi Resep Substitusi Lokal
+                    </h4>
+                    <div class="text-gray-700 text-xs whitespace-pre-line" x-text="modalRecipe"></div>
+                </div>
+            </template>
+
+            <button @click="showModal = false" class="w-full mt-6 bg-primary hover:bg-indigo-700 text-white font-bold py-3 px-4 rounded-xl shadow transition">
                 Mengerti, Terima Kasih!
             </button>
         </div>

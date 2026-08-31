@@ -64,7 +64,8 @@ class FoodUploadForm extends Component
         if ($evaluation['status'] !== 'seimbang' && $evaluation['module']) {
             $this->dispatch('show-education-modal', 
                 title: $evaluation['module']->title, 
-                content: $evaluation['module']->content
+                content: $evaluation['module']->content,
+                recipe: $evaluation['module']->substitution_recipe
             );
         }
 
