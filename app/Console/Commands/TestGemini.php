@@ -12,30 +12,33 @@ class TestGemini extends Command
 
     public function handle()
     {
-        $this->info('Starting Gemini API Test...');
-
         $apiKey = config('services.gemini.key');
-        
         if (empty($apiKey)) {
-            $this->error('ERROR: API Key kosong/tidak terbaca oleh Laravel!');
+            $this->error('ERROR: API Key kosong!');
             return;
         }
         
-        $this->info('API Key Terbaca: ' . substr($apiKey, 0, 5) . '***');
-        $this->info('Menguji koneksi ke Google Gemini...');
-
-        $url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key={$apiKey}";
-        $prompt = "Jawab dengan JSON: {\"status\":\"ok\"}";
-
+        $this->info('Mengambil daftar model yang didukung oleh API Key Anda...');
+        $url = "https://generativelanguage.googleapis.com/v1beta/models?key={$apiKey}";
+        
         try {
-            $response = Http::timeout(15)->post($url, [
-                'contents' => [
-                    ['parts' => [['text' => $prompt]]]
-                ]
-            ]);
-
-            $this->info('Status HTTP: ' . $response->status());
-            $this->info('Respons: ' . $response->body());
+            $response = Http::timeout(15)->get($url);
+            if ($response->successful()) {
+                $models = $response->json('models');
+                if ($models) {
+                    $this->info('Model yang didukung (Pilih salah satu untuk dipakai):');
+                    foreach ($models as $model) {
+                        if (str_contains($model['name'], 'gemini')) {
+                            $this->line('- ' . $model['name']);
+                        }
+                    }
+                } else {
+                    $this->error('Tidak ada model yang ditemukan!');
+                }
+            } else {
+                $this->error('Gagal mengambil daftar model! HTTP ' . $response->status());
+                $this->error($response->body());
+            }
         } catch (\Exception $e) {
             $this->error('Exception: ' . $e->getMessage());
         }
