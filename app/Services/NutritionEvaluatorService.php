@@ -20,7 +20,7 @@ class NutritionEvaluatorService
         $classes = array_column($detections, 'class');
         
         // Coba gunakan Gemini AI jika API key tersedia
-        if (env('GEMINI_API_KEY') && !empty($classes)) {
+        if (config('services.gemini.key') && !empty($classes)) {
             $geminiEvaluation = $this->evaluateWithGemini($classes);
             if ($geminiEvaluation) {
                 $combinedModule = null;
@@ -112,7 +112,7 @@ class NutritionEvaluatorService
      */
     private function evaluateWithGemini(array $classes): ?array
     {
-        $apiKey = env('GEMINI_API_KEY');
+        $apiKey = config('services.gemini.key');
         $url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={$apiKey}";
         
         $foodList = implode(', ', $classes);
@@ -129,7 +129,7 @@ Tolong evaluasi gizinya dan berikan balasan dalam format JSON murni persis seper
 }";
 
         try {
-            $response = \Illuminate\Support\Facades\Http::timeout(15)->post($url, [
+            $response = \Illuminate\Support\Facades\Http::timeout(20)->post($url, [
                 'contents' => [
                     ['parts' => [['text' => $prompt]]]
                 ]
@@ -138,8 +138,10 @@ Tolong evaluasi gizinya dan berikan balasan dalam format JSON murni persis seper
             if ($response->successful()) {
                 $text = $response->json('candidates.0.content.parts.0.text');
                 if ($text) {
-                    $text = str_replace(['```json', '```'], '', trim($text));
-                    return json_decode(trim($text), true);
+                    // Coba ektrak blok JSON murni menggunakan regex jika Gemini menyelipkan teks lain
+                    if (preg_match('/\{.*\}/s', $text, $matches)) {
+                        return json_decode($matches[0], true);
+                    }
                 }
             }
             \Illuminate\Support\Facades\Log::error('Gemini API Error: ' . $response->body());
