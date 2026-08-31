@@ -83,4 +83,52 @@ class NutritionEvaluatorService
             'module' => $combinedModule
         ];
     }
+
+    /**
+     * Mengembalikan fakta gizi berdasarkan kelas makanan yang terdeteksi
+     */
+    public function getNutritionFacts(array $detectedClasses): array
+    {
+        $dictionary = [
+            'nasi' => ['icon' => '🍚', 'desc' => 'Sumber energi utama (Karbohidrat ~130 Kkal/100g).'],
+            'mie' => ['icon' => '🍜', 'desc' => 'Karbohidrat cepat saji (~138 Kkal/100g). Konsumsi secukupnya.'],
+            'kentang' => ['icon' => '🥔', 'desc' => 'Karbohidrat kompleks yang mengenyangkan, tinggi kalium.'],
+            'roti' => ['icon' => '🍞', 'desc' => 'Sumber karbohidrat yang praktis. Pilih gandum utuh lebih baik.'],
+            'jagung' => ['icon' => '🌽', 'desc' => 'Karbohidrat kaya serat dan antioksidan lutein.'],
+            'singkong' => ['icon' => '🍠', 'desc' => 'Sumber karbohidrat lokal yang mengenyangkan (gaplek/thiwul).'],
+            'ayam' => ['icon' => '🍗', 'desc' => 'Protein hewani tinggi (~165 Kkal, 31g Protein/100g).'],
+            'daging' => ['icon' => '🥩', 'desc' => 'Tinggi zat besi & protein hewani untuk cegah anemia.'],
+            'ikan' => ['icon' => '🐟', 'desc' => 'Kaya protein & Omega-3 yang sangat baik untuk kecerdasan otak.'],
+            'telur' => ['icon' => '🥚', 'desc' => 'Protein hewani terbaik & terjangkau, mengandung kolin.'],
+            'tahu' => ['icon' => '🟨', 'desc' => 'Protein nabati dari kedelai, rendah kalori (~76 Kkal/100g).'],
+            'tempe' => ['icon' => '🟫', 'desc' => 'Protein nabati asli Indonesia, hasil fermentasi yang sangat sehat.'],
+            'sayur' => ['icon' => '🥗', 'desc' => 'Sangat kaya serat, mineral, & vitamin. Penting untuk pencernaan!'],
+            'bayam' => ['icon' => '🥬', 'desc' => 'Tinggi zat besi dan kalsium alami.'],
+            'kangkung' => ['icon' => '🥬', 'desc' => 'Banyak serat dan vitamin A untuk mata.'],
+            'wortel' => ['icon' => '🥕', 'desc' => 'Kaya akan beta-karoten (Vitamin A).'],
+            'tomat' => ['icon' => '🍅', 'desc' => 'Kaya antioksidan likopen & Vitamin C.'],
+            'brokoli' => ['icon' => '🥦', 'desc' => 'Superfood! Tinggi antioksidan dan serat.'],
+            'kubis' => ['icon' => '🥬', 'desc' => 'Rendah kalori, kaya vitamin C & K.'],
+        ];
+
+        $facts = [];
+        foreach ($detectedClasses as $cls) {
+            $key = strtolower(trim($cls));
+            if (isset($dictionary[$key])) {
+                $facts[] = [
+                    'name' => ucfirst($key),
+                    'icon' => $dictionary[$key]['icon'],
+                    'desc' => $dictionary[$key]['desc']
+                ];
+            } else {
+                $facts[] = [
+                    'name' => ucfirst($key),
+                    'icon' => '🍽️',
+                    'desc' => 'Sumber kalori dan nutrisi umum.'
+                ];
+            }
+        }
+        
+        return $facts;
+    }
 }

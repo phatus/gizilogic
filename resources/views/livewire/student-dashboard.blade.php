@@ -80,14 +80,27 @@
                             
                             @if($log->detection_results && isset($log->detection_results['detections']))
                                 <div class="mt-2 text-xs text-gray-600 bg-gray-50 p-2 rounded-lg border border-gray-100">
-                                    <span class="font-bold text-indigo-600">AI Mendeteksi:</span><br>
+                                    <span class="font-bold text-indigo-600 mb-1 inline-block">Fakta Gizi Terdeteksi:</span>
                                     @php
-                                        $detectedItems = collect($log->detection_results['detections'])->pluck('class')->unique()->implode(', ');
+                                        $detectedClasses = collect($log->detection_results['detections'])->pluck('class')->unique()->toArray();
+                                        $nutritionFacts = app(\App\Services\NutritionEvaluatorService::class)->getNutritionFacts($detectedClasses);
                                     @endphp
-                                    {{ $detectedItems ?: 'Tidak ada makanan terdeteksi' }}
+                                    
+                                    @if(empty($nutritionFacts))
+                                        <div>Tidak ada makanan terdeteksi</div>
+                                    @else
+                                        <ul class="space-y-1.5 mt-1">
+                                            @foreach($nutritionFacts as $fact)
+                                                <li class="flex items-start gap-1.5">
+                                                    <span class="text-sm leading-none mt-0.5">{{ $fact['icon'] }}</span>
+                                                    <span class="leading-snug"><strong>{{ $fact['name'] }}:</strong> {{ $fact['desc'] }}</span>
+                                                </li>
+                                            @endforeach
+                                        </ul>
+                                    @endif
                                     
                                     @if(isset($log->detection_results['note']) && $log->detection_results['note'] !== 'Analyzed via Roboflow AI')
-                                        <div class="mt-1 text-red-500 italic">({{ $log->detection_results['note'] }})</div>
+                                        <div class="mt-2 text-red-500 italic text-[10px]">({{ $log->detection_results['note'] }})</div>
                                     @endif
                                 </div>
                             @endif
