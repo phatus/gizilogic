@@ -17,6 +17,29 @@ class NutritionEvaluatorService
     public function evaluate(array $detectionResults): array
     {
         $detections = $detectionResults['detections'] ?? [];
+        $classes = array_column($detections, 'class');
+        
+        // Coba gunakan Gemini AI jika API key tersedia
+        if (env('GEMINI_API_KEY') && !empty($classes)) {
+            $geminiEvaluation = $this->evaluateWithGemini($classes);
+            if ($geminiEvaluation) {
+                $combinedModule = null;
+                // Selalu kembalikan modul jika status tidak seimbang atau ada konten edukasi
+                if (!empty($geminiEvaluation['content']) && ($geminiEvaluation['status'] ?? 'seimbang') !== 'seimbang') {
+                    $combinedModule = new EducationModule([
+                        'title' => $geminiEvaluation['title'] ?? 'Pesan Gizi',
+                        'content' => $geminiEvaluation['content'] ?? '',
+                        'substitution_recipe' => $geminiEvaluation['recipe'] ?? ''
+                    ]);
+                }
+                
+                return [
+                    'status' => $geminiEvaluation['status'] ?? 'seimbang',
+                    'module' => $combinedModule,
+                    'nutrition_facts' => $geminiEvaluation['nutrition_facts'] ?? []
+                ];
+            }
+        }
         
         $hasProtein = false;
         $hasVeggie = false;
@@ -82,6 +105,49 @@ class NutritionEvaluatorService
             'status' => $status,
             'module' => $combinedModule
         ];
+    }
+
+    /**
+     * Integrasi Gemini AI untuk evaluasi yang dinamis
+     */
+    private function evaluateWithGemini(array $classes): ?array
+    {
+        $apiKey = env('GEMINI_API_KEY');
+        $url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={$apiKey}";
+        
+        $foodList = implode(', ', $classes);
+        $prompt = "Kamu adalah sistem ahli gizi otomatis untuk aplikasi sekolah GiziLogic. Anak sekolah ini memfoto makanannya dan AI vision mendeteksi item ini: {$foodList}. 
+Tolong evaluasi gizinya dan berikan balasan dalam format JSON murni persis seperti struktur berikut (TANPA markdown blok ```json, berikan langsung JSON-nya):
+{
+  \"status\": \"salah satu dari tepat ini: seimbang, kurang_sayur, kurang_protein, kurang_protein_dan_sayur\",
+  \"title\": \"Judul edukasi gizi yang memotivasi anak (contoh: Wah, Makananmu Keren!)\",
+  \"content\": \"Pesan edukasi atau pujian maksimal 3 kalimat yang ramah untuk anak SMP/SMA.\",
+  \"recipe\": \"Jika kurang gizi, berikan rekomendasi resep masakan rumahan lokal Indonesia. Jika sudah seimbang, biarkan string kosong\",
+  \"nutrition_facts\": [
+     {\"name\": \"Nama makanan\", \"icon\": \"Emoji makanan\", \"desc\": \"Estimasi kalori dan 1 kalimat ringkas manfaat nutrisinya\"}
+  ]
+}";
+
+        try {
+            $response = \Illuminate\Support\Facades\Http::timeout(15)->post($url, [
+                'contents' => [
+                    ['parts' => [['text' => $prompt]]]
+                ]
+            ]);
+
+            if ($response->successful()) {
+                $text = $response->json('candidates.0.content.parts.0.text');
+                if ($text) {
+                    $text = str_replace(['```json', '```'], '', trim($text));
+                    return json_decode(trim($text), true);
+                }
+            }
+            \Illuminate\Support\Facades\Log::error('Gemini API Error: ' . $response->body());
+        } catch (\Exception $e) {
+            \Illuminate\Support\Facades\Log::error('Gemini Exception: ' . $e->getMessage());
+        }
+        
+        return null;
     }
 
     /**

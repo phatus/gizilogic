@@ -82,8 +82,12 @@
                                 <div class="mt-2 text-xs text-gray-600 bg-gray-50 p-2 rounded-lg border border-gray-100">
                                     <span class="font-bold text-indigo-600 mb-1 inline-block">Fakta Gizi Terdeteksi:</span>
                                     @php
-                                        $detectedClasses = collect($log->detection_results['detections'])->pluck('class')->unique()->toArray();
-                                        $nutritionFacts = app(\App\Services\NutritionEvaluatorService::class)->getNutritionFacts($detectedClasses);
+                                        if (isset($log->detection_results['nutrition_facts']) && !empty($log->detection_results['nutrition_facts'])) {
+                                            $nutritionFacts = $log->detection_results['nutrition_facts'];
+                                        } else {
+                                            $detectedClasses = collect($log->detection_results['detections'])->pluck('class')->unique()->toArray();
+                                            $nutritionFacts = app(\App\Services\NutritionEvaluatorService::class)->getNutritionFacts($detectedClasses);
+                                        }
                                     @endphp
                                     
                                     @if(empty($nutritionFacts))

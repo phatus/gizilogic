@@ -34,9 +34,13 @@ class FoodUploadForm extends Component
         // Deteksi API YOLO (Fase 4)
         $detectionResults = $yoloService->analyzeFoodImage($path);
 
-        // Evaluasi Gizi (Fase 5)
+        // Evaluasi Gizi (Fase 5 / Gemini AI)
         $evaluator = app(\App\Services\NutritionEvaluatorService::class);
         $evaluation = $evaluator->evaluate($detectionResults);
+
+        if (isset($evaluation['nutrition_facts'])) {
+            $detectionResults['nutrition_facts'] = $evaluation['nutrition_facts'];
+        }
 
         Auth::user()->foodLogs()->create([
             'photo_path' => $path,
