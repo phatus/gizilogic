@@ -118,7 +118,7 @@
                 </div>
             @endforelse
         </div>
-
+        @endif
         @if($foodLogs && $foodLogs->hasPages())
             <div class="mt-6">
                 {{ $foodLogs->links() }}
