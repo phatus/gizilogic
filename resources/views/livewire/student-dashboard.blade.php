@@ -49,11 +49,11 @@
                     <h3 class="font-bold text-gray-800 text-md mb-1">{{ $this->personalizedRecommendation->title }}</h3>
                     <p class="text-sm text-gray-600 line-clamp-2 mb-4">{{ Str::limit($this->personalizedRecommendation->content, 100) }}</p>
                     
-                    <button @click="$dispatch('show-education-modal', {{ \Illuminate\Support\Js::from([
-                        'title' => $this->personalizedRecommendation->title,
-                        'content' => $this->personalizedRecommendation->content,
-                        'recipe' => $this->personalizedRecommendation->substitution_recipe
-                    ]) }})" class="bg-yellow-500 hover:bg-yellow-600 text-white text-xs font-bold py-2 px-4 rounded-xl transition shadow">
+                    <button @click='let data = {{ \Illuminate\Support\Js::from([
+                        "title" => $this->personalizedRecommendation->title,
+                        "content" => $this->personalizedRecommendation->content,
+                        "recipe" => $this->personalizedRecommendation->substitution_recipe
+                    ]) }}; modalTitle = data.title; modalContent = data.content; modalRecipe = data.recipe; showModal = true;' class="bg-yellow-500 hover:bg-yellow-600 text-white text-xs font-bold py-2 px-4 rounded-xl transition shadow">
                         Baca Selengkapnya & Lihat Resep
                     </button>
                 </div>
