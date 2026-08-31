@@ -33,37 +33,88 @@ class StudentDashboard extends Component
             return \App\Models\EducationModule::inRandomOrder()->first();
         }
 
-        $statuses = $logs->pluck('nutrition_status');
+        // Cache hasil Gemini selama 1 hari (86400 detik) agar tidak membebani kuota API saat refresh
+        $cacheKey = 'gemini_rec_' . $user->id . '_' . now()->format('Y-m-d');
         
-        $counts = [
-            'kurang_protein' => 0,
-            'kurang_sayur' => 0,
-            'seimbang' => 0,
-        ];
+        return \Illuminate\Support\Facades\Cache::remember($cacheKey, 86400, function () use ($logs) {
+            
+            // 1. Coba Generate Rekomendasi Dinamis Pakai Gemini
+            if (config('services.gemini.key')) {
+                $allFoods = [];
+                foreach($logs as $log) {
+                    if (isset($log->detection_results['detections'])) {
+                        foreach($log->detection_results['detections'] as $det) {
+                            $allFoods[] = $det['class'];
+                        }
+                    }
+                }
+                
+                if (!empty($allFoods)) {
+                    $foodList = implode(', ', array_unique($allFoods));
+                    $apiKey = config('services.gemini.key');
+                    $url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key={$apiKey}";
+                    
+                    $prompt = "Kamu adalah ahli gizi. Anak sekolah ini dalam 7 hari terakhir rutin memakan: {$foodList}. 
+Tolong buatkan rekomendasi gizi mingguan dan berikan 1 resep masakan lokal khas Pacitan/Indonesia (seperti sayur kalakan, tahu tuna, pecel, lodeh) yang paling cocok untuk menutupi kekurangan nutrisinya atau menjaga keseimbangannya.
+Balas dalam format JSON murni persis seperti ini (tanpa markdown):
+{
+  \"title\": \"Judul Rekomendasi Mingguan yang Menarik\",
+  \"content\": \"Pesan evaluasi singkat maksimal 3 kalimat untuk anak SMP/SMA.\",
+  \"substitution_recipe\": \"Nama resep khas lokal beserta sedikit bahan atau cara singkat membuatnya.\"
+}";
 
-        foreach ($statuses as $status) {
-            if ($status === 'kurang_protein_dan_sayur') {
-                $counts['kurang_protein']++;
-                $counts['kurang_sayur']++;
-            } elseif (array_key_exists($status, $counts)) {
-                $counts[$status]++;
+                    try {
+                        $response = \Illuminate\Support\Facades\Http::timeout(15)->post($url, [
+                            'contents' => [['parts' => [['text' => $prompt]]]]
+                        ]);
+                        
+                        if ($response->successful()) {
+                            $text = $response->json('candidates.0.content.parts.0.text');
+                            if ($text && preg_match('/\{.*\}/s', $text, $matches)) {
+                                $data = json_decode($matches[0], true);
+                                if ($data) {
+                                    return (object) [
+                                        'title' => '✨ AI: ' . ($data['title'] ?? 'Rekomendasi AI'),
+                                        'content' => $data['content'] ?? '',
+                                        'substitution_recipe' => $data['substitution_recipe'] ?? ''
+                                    ];
+                                }
+                            }
+                        }
+                    } catch (\Exception $e) {
+                        \Illuminate\Support\Facades\Log::error('Gemini Recommendation Error: ' . $e->getMessage());
+                    }
+                }
             }
-        }
 
-        $maxDeficiency = '';
-        $maxCount = 0;
-        
-        foreach (['kurang_sayur', 'kurang_protein'] as $def) {
-            if ($counts[$def] > $maxCount) {
-                $maxCount = $counts[$def];
-                $maxDeficiency = $def;
+            // 2. Fallback: Jika Gemini gagal atau API Key kosong, gunakan Logika Template Statis
+            $statuses = $logs->pluck('nutrition_status');
+            $counts = ['kurang_protein' => 0, 'kurang_sayur' => 0, 'seimbang' => 0];
+
+            foreach ($statuses as $status) {
+                if ($status === 'kurang_protein_dan_sayur') {
+                    $counts['kurang_protein']++;
+                    $counts['kurang_sayur']++;
+                } elseif (array_key_exists($status, $counts)) {
+                    $counts[$status]++;
+                }
             }
-        }
 
-        if ($maxCount > 0) {
-            return \App\Models\EducationModule::where('target_nutrition', $maxDeficiency)->inRandomOrder()->first();
-        }
+            $maxDeficiency = '';
+            $maxCount = 0;
+            
+            foreach (['kurang_sayur', 'kurang_protein'] as $def) {
+                if ($counts[$def] > $maxCount) {
+                    $maxCount = $counts[$def];
+                    $maxDeficiency = $def;
+                }
+            }
 
-        return \App\Models\EducationModule::inRandomOrder()->first();
+            if ($maxCount > 0) {
+                return \App\Models\EducationModule::where('target_nutrition', $maxDeficiency)->inRandomOrder()->first();
+            }
+
+            return \App\Models\EducationModule::inRandomOrder()->first();
+        });
     }
 }
