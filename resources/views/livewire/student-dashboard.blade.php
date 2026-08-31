@@ -38,6 +38,29 @@
     <!-- Upload Form Component -->
     <livewire:food-upload-form />
 
+    <!-- Rekomendasi Khusus Section -->
+    @if($this->personalizedRecommendation)
+        <div class="space-y-4 mt-8">
+            <h2 class="text-lg font-bold text-gray-700 flex items-center gap-2">
+                <span>💡</span> Rekomendasi Khusus Untukmu
+            </h2>
+            <div class="bg-gradient-to-r from-yellow-50 to-orange-50 rounded-2xl p-5 border border-yellow-200 shadow-sm relative overflow-hidden">
+                <div class="relative z-10">
+                    <h3 class="font-bold text-gray-800 text-md mb-1">{{ $this->personalizedRecommendation->title }}</h3>
+                    <p class="text-sm text-gray-600 line-clamp-2 mb-4">{{ Str::limit($this->personalizedRecommendation->content, 100) }}</p>
+                    
+                    <button @click="$dispatch('show-education-modal', {
+                        title: '{{ addslashes($this->personalizedRecommendation->title) }}',
+                        content: '{{ preg_replace('/\r|\n/', '\\n', addslashes($this->personalizedRecommendation->content)) }}',
+                        recipe: '{{ preg_replace('/\r|\n/', '\\n', addslashes($this->personalizedRecommendation->substitution_recipe)) }}'
+                    })" class="bg-yellow-500 hover:bg-yellow-600 text-white text-xs font-bold py-2 px-4 rounded-xl transition shadow">
+                        Baca Selengkapnya & Lihat Resep
+                    </button>
+                </div>
+            </div>
+        </div>
+    @endif
+
     <!-- History Section -->
     <div class="space-y-4 mt-8">
         <h2 class="text-lg font-bold text-gray-700">Histori Makananmu</h2>
